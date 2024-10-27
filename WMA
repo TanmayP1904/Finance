@@ -1,0 +1,29 @@
+import pandas as pd
+import talib
+
+# Load your data (replace this with your data source or API integration)
+# Assuming 'timestamp', 'open', 'high', 'low', 'close', 'volume' columns
+data = pd.read_csv('nifty_15min_data.csv', parse_dates=['timestamp'])
+data.set_index('timestamp', inplace=True)
+
+# Calculate 50-period Weighted Moving Average (WMA)
+data['WMA_50'] = talib.WMA(data['close'], timeperiod=50)
+
+# Initialize columns for signals
+data['Signal'] = 0  # 1 for Buy, -1 for Sell
+
+# Define a threshold for high volume (you can adjust this)
+high_volume_threshold = data['volume'].mean() * 1.5  # Example: 1.5 times the average volume
+
+# Strategy logic
+for i in range(1, len(data)):
+    # Buy condition: High volume candle crosses WMA from below
+    if (data['volume'][i] > high_volume_threshold) and (data['close'][i] > data['WMA_50'][i]) and (data['close'][i-1] <= data['WMA_50'][i-1]):
+        data.at[data.index[i], 'Signal'] = 1  # Buy signal
+
+    # Sell condition: High volume candle crosses WMA from above
+    elif (data['volume'][i] > high_volume_threshold) and (data['close'][i] < data['WMA_50'][i]) and (data['close'][i-1] >= data['WMA_50'][i-1]):
+        data.at[data.index[i], 'Signal'] = -1  # Sell signal
+
+# Output the data with signals
+print(data[['close', 'WMA_50', 'volume', 'Signal']])
